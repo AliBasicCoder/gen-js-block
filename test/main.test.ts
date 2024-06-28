@@ -144,7 +144,6 @@ describe("main module", () => {
     eval(code0)(target);
     eval(code1)(target);
     eval(code2)(target);
-    console.log(code2);
 
     expect(target).toStrictEqual([0, 1, 2, 1, 2, 3, 2, 3, 4]);
   });
@@ -160,7 +159,5 @@ describe("main module", () => {
       }
       some;
     });
-
-    console.log(block._builder.toString());
   });
 });
