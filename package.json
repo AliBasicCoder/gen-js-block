@@ -1,0 +1,32 @@
+{
+  "name": "js-gen",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "js",
+    "code",
+    "generation",
+    "codegen"
+  ],
+  "author": "AliBasicCoder",
+  "repository": {
+    "url": "git:https://github.com/AliBasicCoder/js-gen"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@types/estraverse": "^5.1.7",
+    "acorn": "^8.11.3",
+    "astring": "^1.8.6",
+    "estraverse": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.9",
+    "ts-jest": "^29.1.5"
+  }
+}
