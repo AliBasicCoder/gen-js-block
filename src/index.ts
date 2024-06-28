@@ -67,7 +67,7 @@ function main(program: Statement | Expression, templateVariables: string[]) {
       state.forceIsTemplate = false;
       state.write("{", false);
       for (const name of newVariables) {
-        state.write(`const ${name} = `, false);
+        state.write(`let ${name} = `, false);
         state.write(`result += __inline(${name});`, true);
         state.write(";", false);
       }
@@ -188,7 +188,7 @@ export class Block<T> {
         throw new Error(
           "Function has non-identifier params (like spread params)"
         );
-      templateVariables.push(arg.name);
+      if (arg.name.startsWith("$")) templateVariables.push(arg.name);
     }
 
     const code = `function build(__object) {
