@@ -1,6 +1,6 @@
 {
-  "name": "js-gen",
-  "version": "1.0.0",
+  "name": "gen-js-block",
+  "version": "1.0.1",
   "description": "",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -15,7 +15,7 @@
   ],
   "author": "AliBasicCoder",
   "repository": {
-    "url": "git:https://github.com/AliBasicCoder/js-gen"
+    "url": "git:https://github.com/AliBasicCoder/gen-js-block"
   },
   "license": "MIT",
   "dependencies": {

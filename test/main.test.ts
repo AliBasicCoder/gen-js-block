@@ -191,21 +191,6 @@ describe("main module", () => {
 
       return block.build({ $n: n, $fn: productFact });
     }
-    function recur(n: number) {
-      const block = new Block(($fn: any, $n: any) => {
-        if ($n < 1) {
-          console.log(0);
-        } else {
-          console.log($n);
-          {
-            $fn($n - 1);
-          }
-        }
-      });
-
-      return block.build({ $n: n, $fn: recur });
-    }
-    console.log(recur(3));
 
     const code = productFact(3);
     expect(

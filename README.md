@@ -1,8 +1,8 @@
-# js-gen
+# gen-js-block
 
 a js-library to generate js code with js code
 
-> if you like this package please star it in [github](https://github.com/AliBasicCoder/js-gen)
+> if you like this package please star it in [github](https://github.com/AliBasicCoder/gen-js-block)
 
 ## Usage
 
@@ -14,7 +14,7 @@ and the code inside will not be in the output
 if the condition is false
 
 ```js
-import { Block } from "js-gen";
+import { Block } from "gen-js-block";
 
 const block = new Block(($condition) => {
   if ($condition) {
@@ -31,7 +31,7 @@ console.log(block.build({ $condition: false })); // => {console.log("$condition 
 similarly for-of and for-in loops with template variables in them are called template loops (c-style loops can't be template maybe in the future)
 
 ```js
-import { Block } from "js-gen";
+import { Block } from "gen-js-block";
 
 const block = new Block(($array) => {
   for (const $item of $array) {
@@ -47,7 +47,7 @@ and also the value of template variables will be included in the code,
 so you can use them in the result code
 
 ```js
-import { Block } from "js-gen";
+import { Block } from "gen-js-block";
 
 const block = new Block(($message) => {
   console.log($message);
@@ -63,9 +63,9 @@ the block class then the string returned from that call will be added to the res
 example: let's say you want to make code that returns a function that returns a random number
 
 ```js
-import { Block } from "js-gen"l
+import { Block } from "gen-js-block";
 
-const block = new Block($fn => {
+const block = new Block(($fn) => {
   function result() {
     return $fn();
   }
@@ -114,7 +114,7 @@ eval(code);
 if you want to build the code then run it you can use the eval method
 
 ```js
-import { Block } from "js-gen";
+import { Block } from "gen-js-block";
 
 const block = new Block(($message) => {
   console.log($message);
@@ -129,7 +129,7 @@ block.eval({ $message: "hello world!" });
 all template variables must be typed like so
 
 ```ts
-import { Block } from "js-gen";
+import { Block } from "gen-js-block";
 
 const block = new Block<{ $message: string; $array: number[] }>(
   ($message: string, $array: number[]) => {
