@@ -160,4 +160,56 @@ describe("main module", () => {
       some;
     });
   });
+
+  test("template function call", () => {
+    const block = new Block<{ $n: number; $fn: (n: number) => number }>(
+      ($n: number, $fn: (n: number) => number) => {
+        function result() {
+          return $fn($n);
+        }
+        result;
+      }
+    );
+    const $fn = (n: number): number => (n < 2 ? 1 : n * $fn(n - 1));
+    const $n = 5;
+    const code = block.build({ $n, $fn });
+
+    expect(code.includes("120")).toBeTruthy();
+    expect(eval(code)()).toBe(120);
+  });
+
+  test("template recursion", () => {
+    function productFact(n: number) {
+      const block = new Block<{ $n: number; $fn: Function }>(
+        ($n: number, $fn: Function) => {
+          if ($n < 2) 1;
+          else {
+            $fn($n - 1);
+          }
+        }
+      );
+
+      return block.build({ $n: n, $fn: productFact });
+    }
+    function recur(n: number) {
+      const block = new Block(($fn: any, $n: any) => {
+        if ($n < 1) {
+          console.log(0);
+        } else {
+          console.log($n);
+          {
+            $fn($n - 1);
+          }
+        }
+      });
+
+      return block.build({ $n: n, $fn: recur });
+    }
+    console.log(recur(3));
+
+    const code = productFact(3);
+    expect(
+      code.includes("3") && code.includes("2") && code.includes("1")
+    ).toBeTruthy();
+  });
 });

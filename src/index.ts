@@ -35,11 +35,14 @@ function isTemplateCond(node: Node) {
   );
 }
 
+// TODO option to inline template variables instead of defining them on top
 // TODO template c-style for loops
 // TODO check for undefined template variables
 // TODO define template variables in block
 // TODO maybe template switch statements?
 function main(program: Statement | Expression, templateVariables: string[]) {
+  const tempVars = new Set(templateVariables);
+
   function ForOfStatement(node: any, state: any) {
     const isTempCond = isTemplateCond(node.right);
     if (isTempCond) {
@@ -157,6 +160,23 @@ function main(program: Statement | Expression, templateVariables: string[]) {
         GENERATOR[node.type](node, state);
       }
     },
+    CallExpression(node: any, state: any) {
+      if (
+        node.callee.type === "Identifier" &&
+        node.callee.name.startsWith("$") &&
+        tempVars.has(node.callee.name)
+      ) {
+        state.forceIsTemplate = true;
+        state.write(`result += `, true);
+        // @ts-ignore
+        GENERATOR[node.type](node, state);
+        state.write(`;`, true);
+        state.forceIsTemplate = false;
+      } else {
+        // @ts-ignore
+        GENERATOR[node.type](node, state);
+      }
+    },
     ForOfStatement,
     ForInStatement: ForOfStatement,
   });
@@ -175,7 +195,7 @@ function main(program: Statement | Expression, templateVariables: string[]) {
 export class Block<T> {
   _builder: (obj: any) => string;
 
-  constructor(public fn: Function) {
+  constructor(public fn: Function, logCode?: boolean) {
     const parsed = acorn.parse(`(${fn.toString()});`, {
       ecmaVersion: "latest",
     });
@@ -209,7 +229,7 @@ export class Block<T> {
       ${main(fnExpression.body, templateVariables)}
       return result;
     }; build`;
-    // console.log(code);
+    if (logCode) console.log(code);
     this._builder = eval(code);
   }
 

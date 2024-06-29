@@ -57,6 +57,58 @@ console.log(block.build({ $message: "hello world!" }));
 // => {const $message = "hello world!";console.log($message);}
 ```
 
+also if you call a function that starts with $ and it's an argument of the function passed to
+the block class then the string returned from that call will be added to the result code as is
+
+example: let's say you want to make code that returns a function that returns a random number
+
+```js
+import { Block } from "js-gen"l
+
+const block = new Block($fn => {
+  function result() {
+    return $fn();
+  }
+  result;
+});
+
+const code = block.build({ $fn: Math.random });
+// => {const $fn = undefined;function result() { return 0.5542537758332537 }; result;}
+console.log(eval(code)());
+// => 0.5542537758332537
+console.log(eval(code)());
+// => 0.5542537758332537
+```
+
+example 2: let's say you want to print numbers from 3 to 0 but using recursion instead of loops...
+
+```js
+function recur(n: number) {
+  const block = new Block(($fn: any, $n: any) => {
+    if ($n < 1) {
+      console.log(0);
+    } else {
+      console.log($n);
+      // these brackets are needed in these case
+      // and most cases
+      {
+        $fn($n - 1);
+      }
+    }
+  });
+
+  return block.build({ $n: n, $fn: recur });
+}
+const code = recur(3);
+console.log(code);
+// => const $fn = undefined;const $n = 3;{console.log($n);{const $fn = undefined;const $n = 2;{console.log($n);{const $fn = undefined;const $n = 1;{console.log($n);{const $fn = undefined;const $n = 0;{console.log(0);};}};}};}}
+eval(code);
+// => 3
+// => 2
+// => 1
+// => 0
+```
+
 ## eval method
 
 if you want to build the code then run it you can use the eval method
