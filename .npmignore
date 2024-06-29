@@ -1,0 +1,5 @@
+src/
+test/
+jest.config.js
+tsconfig.js
+dist/test
