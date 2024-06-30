@@ -269,6 +269,10 @@ type BlockOptions = { inlineVariables: string[] | boolean };
 
 const DEFAULT_OPTIONS: BlockOptions = { inlineVariables: false };
 
+const REPLACE = Symbol("js-gen-block");
+
+export const insertCode = (code: string) => ({ [REPLACE]: code });
+
 export class Block<T> {
   _builder: (obj: any) => string;
 
@@ -295,7 +299,7 @@ export class Block<T> {
     }
 
     const code = `function build(__object) {
-      const __inline = (value) => value instanceof Date ? 'new Date("' + value.toString() + '")' : JSON.stringify(value);
+      const __inline = (value) => typeof value === "object" && !!value && REPLACE in value ? value[REPLACE] : value instanceof Date ? 'new Date("' + value.toString() + '")' : JSON.stringify(value);
       let result = "";
       const { ${templateVariables.join(", ")} } = __object;
       ${main(fnExpression.body, templateVariables, ops.inlineVariables)}

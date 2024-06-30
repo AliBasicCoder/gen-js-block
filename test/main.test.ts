@@ -1,4 +1,4 @@
-import { Block } from "../src";
+import { Block, insertCode } from "../src";
 
 describe("main module", () => {
   test("non-template code returns as is", () => {
@@ -252,5 +252,19 @@ describe("main module", () => {
     const code = block.build({ $obj: { some: { message: "hello world" } } });
 
     expect(code).toContain('console.log("hello world")');
+  });
+
+  test("insert code", () => {
+    const block = new Block<{ $fn: any }>(
+      ($a: any) => {
+        $a = "hello";
+      },
+      { inlineVariables: true }
+    );
+
+    // @ts-ignore
+    const code = block.build({ $a: insertCode("myvar") });
+
+    expect(code).toContain('myvar = "hello";');
   });
 });

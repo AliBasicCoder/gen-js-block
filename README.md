@@ -146,6 +146,21 @@ console.log(
 // => const $message2 = "hello again";console.log("hello world", $message2);
 ```
 
+## insertCode
+
+you could also replace template variables with code instead of values
+
+```js
+import { Block, insertCode } from "gen-js-block";
+
+const block = new Block(($varName) => {
+  $varName = "hello world";
+});
+
+console.log(block.build({ $varName: insertCode("helloWorld") }));
+// => helloWorld = "hello world";
+```
+
 ## eval method
 
 if you want to build the code then run it you can use the eval method
