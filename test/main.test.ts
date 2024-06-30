@@ -197,4 +197,60 @@ describe("main module", () => {
       code.includes("3") && code.includes("2") && code.includes("1")
     ).toBeTruthy();
   });
+
+  test("inline option", () => {
+    const block = new Block<{ $message: string }>(
+      ($message: string) => {
+        console.log($message);
+      },
+      { inlineVariables: true }
+    );
+
+    const code = block.build({ $message: "hello world" });
+
+    expect(code).toContain('console.log("hello world")');
+  });
+
+  test("inline some variables", () => {
+    const block = new Block<{ $message: string; $message2: string }>(
+      ($message: string, $message2: string) => {
+        console.log($message, $message2);
+      },
+      { inlineVariables: ["$message"] }
+    );
+    const code = block.build({
+      $message: "hello world!",
+      $message2: "hello, again",
+    });
+
+    expect(code).toContain('console.log("hello world!", $message2)');
+  });
+
+  test("inline option in for loop", () => {
+    const block = new Block<{ $messages: string[] }>(
+      ($messages: string[]) => {
+        for (const $message of $messages) {
+          console.log($message);
+        }
+      },
+      { inlineVariables: true }
+    );
+    const code = block.build({ $messages: ["hi", "hello", "world"] });
+
+    expect(code).toContain('console.log("hi")');
+    expect(code).toContain('console.log("hello")');
+    expect(code).toContain('console.log("world")');
+  });
+
+  test("inline option in member expression", () => {
+    const block = new Block<{ $obj: any }>(
+      ($obj: any) => {
+        console.log($obj.some.message);
+      },
+      { inlineVariables: true }
+    );
+    const code = block.build({ $obj: { some: { message: "hello world" } } });
+
+    expect(code).toContain('console.log("hello world")');
+  });
 });

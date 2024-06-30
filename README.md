@@ -109,6 +109,43 @@ eval(code);
 // => 0
 ```
 
+## inline options
+
+you might have noticed that instead of replacing template variables in the result code
+gen-js-block defines them on top, if you want it to replace it instead use this
+
+```js
+import { Block } from "gen-js-block";
+
+const block = new Block(
+  ($message) => {
+    console.log($message);
+  },
+  { inlineVariables: true }
+);
+
+console.log(block.build({ $message: "hello world!" }));
+// => console.log("hello world");
+```
+
+if you want to inline specific variables to this
+
+```js
+import { Block } from "gen-js-block";
+
+const block = new Block(
+  ($message, $message2) => {
+    console.log($message, $message2);
+  },
+  { inlineVariables: ["$message"] }
+);
+
+console.log(
+  block.build({ $message: "hello world!", $message2: "hello, again" })
+);
+// => const $message2 = "hello again";console.log("hello world", $message2);
+```
+
 ## eval method
 
 if you want to build the code then run it you can use the eval method

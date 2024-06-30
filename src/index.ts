@@ -3,6 +3,7 @@ import acorn, {
   Expression,
   ExpressionStatement,
   FunctionExpression,
+  MemberExpression,
   Node,
   Statement,
 } from "acorn";
@@ -35,13 +36,34 @@ function isTemplateCond(node: Node) {
   );
 }
 
-// TODO option to inline template variables instead of defining them on top
+function getFirstExpression(expression: MemberExpression) {
+  let object = expression;
+
+  while (true) {
+    if (object.object.type === "MemberExpression") object = object.object;
+    else {
+      return object.object;
+    }
+  }
+}
+
 // TODO template c-style for loops
 // TODO check for undefined template variables
 // TODO define template variables in block
 // TODO maybe template switch statements?
-function main(program: Statement | Expression, templateVariables: string[]) {
+function main(
+  program: Statement | Expression,
+  templateVariables: string[],
+  inlineVariables: string[] | boolean
+) {
   const tempVars = new Set(templateVariables);
+  const toInline = new Set(
+    typeof inlineVariables === "boolean"
+      ? inlineVariables
+        ? templateVariables
+        : []
+      : inlineVariables
+  );
 
   function ForOfStatement(node: any, state: any) {
     const isTempCond = isTemplateCond(node.right);
@@ -69,13 +91,21 @@ function main(program: Statement | Expression, templateVariables: string[]) {
       state.write(") {", true);
       state.forceIsTemplate = false;
       state.write("{", false);
+      newVariables.forEach((item) => tempVars.add(item));
+      if (inlineVariables && typeof inlineVariables === "boolean")
+        newVariables.forEach((item) => toInline.add(item));
       for (const name of newVariables) {
+        if (toInline.has(name)) continue;
         state.write(`let ${name} = `, false);
         state.write(`result += __inline(${name});`, true);
         state.write(";", false);
       }
       // @ts-ignore
       this[node.body.type](node.body, state);
+      newVariables.forEach((item) => tempVars.delete(item));
+      if (inlineVariables && typeof inlineVariables === "boolean")
+        newVariables.forEach((item) => toInline.delete(item));
+
       state.write("};", false);
       state.write("};", true);
     } else {
@@ -177,6 +207,36 @@ function main(program: Statement | Expression, templateVariables: string[]) {
         GENERATOR[node.type](node, state);
       }
     },
+    MemberExpression(node: any, state: any) {
+      const firstExpr = getFirstExpression(node);
+      if (
+        firstExpr.type === "Identifier" &&
+        firstExpr.name.startsWith("$") &&
+        toInline.has(firstExpr.name)
+      ) {
+        state.write(`result += __inline(`, true);
+        state.forceIsTemplate = true;
+        // @ts-ignore
+        GENERATOR[node.type](node, state);
+        state.forceIsTemplate = false;
+        state.write(`);`, true);
+      } else {
+        // @ts-ignore
+        GENERATOR[node.type](node, state);
+      }
+    },
+    Identifier(node: any, state: any) {
+      if (
+        node.name.startsWith("$") &&
+        toInline.has(node.name) &&
+        !state.forceIsTemplate
+      ) {
+        state.write(`result += __inline(${node.name});`, true);
+      } else {
+        // @ts-ignore
+        GENERATOR[node.type](node, state);
+      }
+    },
     ForOfStatement,
     ForInStatement: ForOfStatement,
   });
@@ -189,13 +249,36 @@ function main(program: Statement | Expression, templateVariables: string[]) {
 
   // @ts-ignore
   state.generator.Program(program, state);
-  return state.toString();
+  return (
+    templateVariables
+      .filter((item) => !toInline.has(item))
+      .map(
+        (item) =>
+          'result += "const ' +
+          item +
+          ' = " + ' +
+          "__inline(" +
+          item +
+          ') + ";";'
+      )
+      .join("") + state.toString()
+  );
 }
+
+type BlockOptions = { inlineVariables: string[] | boolean };
+
+const DEFAULT_OPTIONS: BlockOptions = { inlineVariables: false };
 
 export class Block<T> {
   _builder: (obj: any) => string;
 
-  constructor(public fn: Function, logCode?: boolean) {
+  constructor(
+    public fn: Function,
+    options?: Partial<BlockOptions>,
+    logCode?: boolean
+  ) {
+    const ops = Object.assign({}, DEFAULT_OPTIONS, options);
+
     const parsed = acorn.parse(`(${fn.toString()});`, {
       ecmaVersion: "latest",
     });
@@ -215,18 +298,7 @@ export class Block<T> {
       const __inline = (value) => value instanceof Date ? 'new Date("' + value.toString() + '")' : JSON.stringify(value);
       let result = "";
       const { ${templateVariables.join(", ")} } = __object;
-      ${templateVariables
-        .map(
-          (item) =>
-            'result += "const ' +
-            item +
-            ' = " + ' +
-            "__inline(" +
-            item +
-            ') + ";";'
-        )
-        .join("")}
-      ${main(fnExpression.body, templateVariables)}
+      ${main(fnExpression.body, templateVariables, ops.inlineVariables)}
       return result;
     }; build`;
     if (logCode) console.log(code);
