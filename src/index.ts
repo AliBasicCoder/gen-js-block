@@ -273,7 +273,7 @@ const REPLACE = Symbol("js-gen-block");
 
 export const insertCode = (code: string) => ({ [REPLACE]: code });
 
-export class Block<T> {
+export class Block<T = {}> {
   _builder: (obj: any) => string;
 
   constructor(
@@ -309,11 +309,11 @@ export class Block<T> {
     this._builder = eval(code);
   }
 
-  build(object: T) {
+  build(object: T): string {
     return this._builder(object);
   }
 
-  eval(object: T) {
+  eval(object: T): any {
     return eval(this._builder(object));
   }
 }
