@@ -1,5 +1,13 @@
 # gen-js-block
 
+[![npm](https://img.shields.io/npm/dm/gen-js-block)](https://npmjs.com/package/gen-js-block)
+[![npm](https://img.shields.io/npm/v/gen-js-block)](https://npmjs.com/package/gen-js-block)
+
+[![GitHub issues](https://img.shields.io/github/issues/AliBasicCoder/gen-js-block)](https://github.com/AliBasicCoder/gen-js-block/issues)
+[![GitHub forks](https://img.shields.io/github/forks/AliBasicCoder/gen-js-block)](https://github.com/AliBasicCoder/gen-js-block/network)
+[![GitHub stars](https://img.shields.io/github/stars/AliBasicCoder/gen-js-block)](https://github.com/AliBasicCoder/gen-js-block/stargazers)
+[![GitHub license](https://img.shields.io/github/license/AliBasicCoder/gen-js-block)](https://github.com/AliBasicCoder/gen-js-block/blob/master/LICENSE)
+
 a js-library to generate js code with js code
 
 > if you like this package please star it in [github](https://github.com/AliBasicCoder/gen-js-block)
