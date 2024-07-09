@@ -169,6 +169,24 @@ console.log(block.build({ $varName: insertCode("helloWorld") }));
 // => helloWorld = "hello world";
 ```
 
+## replace option
+
+this will not consider if statements and for-loops that contain specified template vars as template if-statements 
+and for loops
+
+```js
+import { Block, insertCode } from "gen-js-block";
+
+const block = new Block(($some) => {
+  if ($some === "one") $some = 1;
+  else if ($some === "two") $some = 2;
+  else $some = null;
+}, { replace: ["$some"] });
+
+console.log(block.build({ $some: insertCode("hello.world") }));
+// ==> if (hello.world === "one") { hello.world = 1 } else if (hello.world === 2) { hello.world = 1 } else { hello.world = null; }
+```
+
 ## eval method
 
 if you want to build the code then run it you can use the eval method
