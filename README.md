@@ -163,7 +163,7 @@ import { Block, insertCode } from "gen-js-block";
 
 const block = new Block(($varName) => {
   $varName = "hello world";
-});
+}, { inlineVariables: true });
 
 console.log(block.build({ $varName: insertCode("helloWorld") }));
 // => helloWorld = "hello world";
