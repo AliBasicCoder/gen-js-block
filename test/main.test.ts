@@ -267,4 +267,30 @@ describe("main module", () => {
 
     expect(code).toContain('myvar = "hello";');
   });
+  // first bug: if template variable is the first part in a member expression
+  // and that expression has variables that doesn't start with a $
+  // it will be consider as a non-template condition...
+  // second bug: inline variables that are in a member expression inside a if-statement will
+  // cause error
+  // TODO: give this test a name
+  test("some", () => {
+    const block = new Block<{ $s: any; $b: any; $c: string }>(
+      ($s: any, $b: any, $c: string) => {
+        if ($b.default === "world") console.log("hi");
+        $s = $b.default;
+        console.log(`this message is "${$c}"`);
+      },
+      { inlineVariables: true }
+    );
+
+    const code = block.build({
+      $s: insertCode("object.name"),
+      $b: { default: "hello" },
+      $c: "hello world",
+    });
+
+    expect(code.includes('console.log("hi")')).toBeFalsy();
+    expect(code).toContain(`object.name = "hello"`);
+    expect(code).toContain('`this message is "${"hello world"}"`');
+  });
 });

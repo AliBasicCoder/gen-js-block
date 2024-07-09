@@ -9,7 +9,7 @@ import acorn, {
 } from "acorn";
 import astring, { GENERATOR, generate } from "astring";
 import { State, formatVariableDeclaration } from "./state";
-import { traverse } from "estraverse";
+import { traverse, VisitorOption } from "estraverse";
 
 function getIdentifier(ast: Node) {
   const result: string[] = [];
@@ -18,6 +18,13 @@ function getIdentifier(ast: Node) {
     ast,
     {
       enter(node) {
+        if (node.type === "MemberExpression") {
+          // @ts-ignore
+          const expr = getFirstExpression(node);
+          if (expr.type === "Identifier") result.push(expr.name);
+
+          return VisitorOption.Skip;
+        }
         if (node.type === "Identifier") {
           result.push(node.name);
         }
@@ -212,7 +219,8 @@ function main(
       if (
         firstExpr.type === "Identifier" &&
         firstExpr.name.startsWith("$") &&
-        toInline.has(firstExpr.name)
+        toInline.has(firstExpr.name) &&
+        !state.forceIsTemplate
       ) {
         state.write(`result += __inline(`, true);
         state.forceIsTemplate = true;
