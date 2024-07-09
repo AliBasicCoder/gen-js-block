@@ -293,4 +293,26 @@ describe("main module", () => {
     expect(code).toContain(`object.name = "hello"`);
     expect(code).toContain('`this message is "${"hello world"}"`');
   });
+
+  test("replace", () => {
+    const block = new Block<{ $s: any; $t: any }>(
+      ($s: any, $t: any) => {
+        if ($s === 0 || $s === "0" || $s === "false") $s = false;
+        else if ($s == "1" || $s === "true") $s = true;
+
+        $s = $t.hello;
+      },
+      { replace: ["$s"], inlineVariables: ["$t"] }
+    );
+    const code = block.build({
+      $s: insertCode("hello.world"),
+      $t: { hello: "hello" },
+    });
+
+    expect(code).toContain('hello.world === "0"');
+    expect(code).toContain('hello.world === "true"');
+    expect(code).toContain('hello.world = "hello";');
+    expect(code).toContain("hello.world = true;");
+    expect(code).toContain("hello.world = false;");
+  });
 });
