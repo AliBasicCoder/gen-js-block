@@ -5,6 +5,7 @@ import acorn, {
   FunctionExpression,
   MemberExpression,
   Node,
+  PrivateIdentifier,
   Statement,
 } from "acorn";
 import astring, { GENERATOR, generate } from "astring";
@@ -52,6 +53,33 @@ function getFirstExpression(expression: MemberExpression) {
     else {
       return object.object;
     }
+  }
+}
+
+function removeFirstMemberExpression(
+  ast: MemberExpression
+): [Expression | PrivateIdentifier | MemberExpression, MemberExpression] {
+  if (ast.object.type !== "MemberExpression") {
+    return [ast.property, ast];
+  } else {
+    let prevCurrent = ast;
+    let current = ast.object;
+
+    while (current.object && current.object.type === "MemberExpression") {
+      prevCurrent = current;
+      current = current.object;
+    }
+
+    return [
+      // @ts-ignore
+      {
+        type: "MemberExpression",
+        object: current.property as Expression,
+        property: ast.property,
+        computed: ast.computed,
+      },
+      prevCurrent,
+    ];
   }
 }
 
@@ -177,15 +205,36 @@ function main(
       if (
         firstExpr.type === "Identifier" &&
         firstExpr.name.startsWith("$") &&
-        toInline.has(firstExpr.name) &&
         !state.forceIsTemplate
       ) {
-        state.write(`result += __inline(`, true);
-        state.forceIsTemplate = true;
-        // @ts-ignore
-        GENERATOR[node.type](node, state);
-        state.forceIsTemplate = false;
-        state.write(`);`, true);
+        if (toReplace.has(firstExpr.name)) {
+          state.write(`result += __inline(`, true);
+          state.forceIsTemplate = true;
+          // @ts-ignore
+          GENERATOR[firstExpr.type](firstExpr, state);
+          state.forceIsTemplate = false;
+          state.write(`);`, true);
+          const [rest, parentExpression] = removeFirstMemberExpression(node);
+          state.write(
+            parentExpression.computed
+              ? parentExpression.optional
+                ? "?.["
+                : "["
+              : parentExpression.optional
+              ? "?."
+              : "."
+          );
+          // @ts-ignore
+          this[rest.type](rest, state);
+          if (parentExpression.computed) state.write("]");
+        } else if (toInline.has(firstExpr.name)) {
+          state.write(`result += __inline(`, true);
+          state.forceIsTemplate = true;
+          // @ts-ignore
+          GENERATOR[node.type](node, state);
+          state.forceIsTemplate = false;
+          state.write(`);`, true);
+        }
       } else {
         // @ts-ignore
         GENERATOR[node.type](node, state);

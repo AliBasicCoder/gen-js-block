@@ -301,8 +301,13 @@ describe("main module", () => {
         else if ($s == "1" || $s === "true") $s = true;
 
         $s = $t.hello;
+        $s = "hello world";
+        $s.length = 6;
+        $s[$t.hello] = 5;
+        console.log($s?.[$t.hello], $s?.hello);
       },
-      { replace: ["$s"], inlineVariables: ["$t"] }
+      { replace: ["$s"], inlineVariables: ["$t"] },
+      true
     );
     const code = block.build({
       $s: insertCode("hello.world"),
@@ -314,5 +319,9 @@ describe("main module", () => {
     expect(code).toContain('hello.world = "hello";');
     expect(code).toContain("hello.world = true;");
     expect(code).toContain("hello.world = false;");
+    expect(code).toContain("hello.world.length = 6");
+    expect(code).toContain('hello.world["hello"] = 5');
+    expect(code).toContain('hello.world?.["hello"]');
+    expect(code).toContain("hello.world?.hello");
   });
 });
