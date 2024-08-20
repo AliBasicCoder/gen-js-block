@@ -154,25 +154,10 @@ console.log(
 // => const $message2 = "hello again";console.log("hello world", $message2);
 ```
 
-## insertCode
-
-you could also replace template variables with code instead of values
-
-```js
-import { Block, insertCode } from "gen-js-block";
-
-const block = new Block(($varName) => {
-  $varName = "hello world";
-}, { inlineVariables: true });
-
-console.log(block.build({ $varName: insertCode("helloWorld") }));
-// => helloWorld = "hello world";
-```
-
 ## replace option
 
 this will not consider if statements and for-loops that contain specified template vars as template if-statements 
-and for loops
+and for loops instead it will replace it with given code
 
 ```js
 import { Block, insertCode } from "gen-js-block";
@@ -183,6 +168,7 @@ const block = new Block(($some) => {
   else $some = null;
 }, { replace: ["$some"] });
 
+// you must use insertCode function
 console.log(block.build({ $some: insertCode("hello.world") }));
 // ==> if (hello.world === "one") { hello.world = 1 } else if (hello.world === 2) { hello.world = 1 } else { hello.world = null; }
 ```
