@@ -3,6 +3,8 @@ import acorn, {
   Expression,
   ExpressionStatement,
   FunctionExpression,
+  Identifier,
+  Literal,
   MemberExpression,
   Node,
   PrivateIdentifier,
@@ -57,30 +59,20 @@ function getFirstExpression(expression: MemberExpression) {
   }
 }
 
-function removeFirstMemberExpression(
-  ast: MemberExpression
-): [Expression | PrivateIdentifier | MemberExpression, MemberExpression] {
+function removeFirstMemberExpression(ast: MemberExpression): MemberExpression {
   if (ast.object.type !== "MemberExpression") {
-    return [ast.property, ast];
+    (ast.object as Identifier).name = "";
+    return ast;
   } else {
-    let prevCurrent = ast;
     let current = ast.object;
 
     while (current.object && current.object.type === "MemberExpression") {
-      prevCurrent = current;
       current = current.object;
     }
 
-    return [
-      // @ts-ignore
-      {
-        type: "MemberExpression",
-        object: current.property as Expression,
-        property: ast.property,
-        computed: ast.computed,
-      },
-      prevCurrent,
-    ];
+    (current.object as Identifier).name = "";
+
+    return ast;
   }
 }
 
@@ -202,6 +194,8 @@ function main(
     },
     // OMemberExpression: GENERATOR.MemberExpression,
     MemberExpression(node: any, state: any) {
+      // TODO allow replace vars inside expression not just at first
+      // TODO ex: $s[$t], $s.hello[$t], etc...
       const firstExpr = getFirstExpression(node);
       if (
         firstExpr.type === "Identifier" &&
@@ -215,19 +209,8 @@ function main(
           GENERATOR[firstExpr.type](firstExpr, state);
           state.forceIsTemplate = false;
           state.write(`);`, true);
-          const [rest, parentExpression] = removeFirstMemberExpression(node);
-          state.write(
-            parentExpression.computed
-              ? parentExpression.optional
-                ? "?.["
-                : "["
-              : parentExpression.optional
-              ? "?."
-              : "."
-          );
-          // @ts-ignore
+          const rest = removeFirstMemberExpression(node);
           this[rest.type](rest, state);
-          if (parentExpression.computed) state.write("]");
         } else if (toInline.has(firstExpr.name)) {
           state.write(`result += __inline(`, true);
           state.forceIsTemplate = true;
