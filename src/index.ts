@@ -188,6 +188,12 @@ function main(
         this.OCallExpression(node, state);
         state.write(`;`, true);
         state.forceIsTemplate = false;
+      } else if (isTemplateCond(node, toReplace)) {
+        state.forceIsTemplate = true;
+        state.write(`result += __inline(`, true);
+        this.OCallExpression(node, state);
+        state.write(`);`, true);
+        state.forceIsTemplate = false;
       } else {
         this.OCallExpression(node, state);
       }

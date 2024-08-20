@@ -317,7 +317,6 @@ describe("main module", () => {
       $t: { hello: "hello" },
     });
 
-    console.log(code);
     expect(code).toContain('hello.world === "0"');
     expect(code).toContain('hello.world === "true"');
     expect(code).toContain('hello.world = "hello";');
@@ -348,5 +347,18 @@ describe("main module", () => {
     expect(code).toContain(
       'if (hello.world.length < 2) console.log("string too short"); else console.log("string too long");'
     );
+  });
+
+  test("function call with template vars", () => {
+    const block = new Block<{ $foo: { bar: string[] } }>(
+      ($foo: { bar: string[] }) => {
+        console.log($foo.bar.join(", "));
+      },
+      { inlineVariables: true }
+    );
+
+    const code = block.build({ $foo: { bar: ["hello", "world"] } });
+
+    expect(code).toContain('console.log("hello, world")');
   });
 });
