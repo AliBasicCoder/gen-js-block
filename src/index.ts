@@ -12,7 +12,7 @@ import astring, { GENERATOR, generate } from "astring";
 import { State, formatVariableDeclaration } from "./state";
 import { traverse, VisitorOption } from "estraverse";
 
-function getIdentifier(ast: Node, toReplace: Set<string>) {
+function getIdentifier(ast: Node) {
   const result: string[] = [];
   traverse(
     // @ts-ignore
@@ -33,15 +33,16 @@ function getIdentifier(ast: Node, toReplace: Set<string>) {
     }
   );
 
-  return result.filter((item) => !toReplace.has(item));
+  return result;
 }
 
 function isTemplateCond(node: Node, toReplace: Set<string>) {
-  const identifiers = getIdentifier(node, toReplace);
+  const identifiers = getIdentifier(node);
 
   return (
-    identifiers.findIndex((name) => !name.startsWith("$")) === -1 &&
-    identifiers.length > 0
+    identifiers.findIndex(
+      (name) => !name.startsWith("$") || toReplace.has(name)
+    ) === -1 && identifiers.length > 0
   );
 }
 
@@ -260,7 +261,7 @@ function main(
         state.forceIsTemplate = true;
         let newVariables = [] as string[];
         if (node.left.type[0] === "V") {
-          newVariables = getIdentifier(node.left, new Set());
+          newVariables = getIdentifier(node.left);
           if (newVariables.findIndex((name) => !name.startsWith("$")) !== -1) {
             throw new Error(
               `all template variables must start with $ (variables: ${generate(

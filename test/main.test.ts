@@ -306,8 +306,7 @@ describe("main module", () => {
         $s[$t.hello] = 5;
         console.log($s?.[$t.hello], $s?.hello);
       },
-      { replace: ["$s"], inlineVariables: ["$t"] },
-      true
+      { replace: ["$s"], inlineVariables: ["$t"] }
     );
     const code = block.build({
       $s: insertCode("hello.world"),
@@ -323,5 +322,24 @@ describe("main module", () => {
     expect(code).toContain('hello.world["hello"] = 5');
     expect(code).toContain('hello.world?.["hello"]');
     expect(code).toContain("hello.world?.hello");
+  });
+
+  test("replace var treated as non-template var", () => {
+    const block = new Block<{ $replace: any; $some: { min: number } }>(
+      ($replace: string, $some: { min: number }) => {
+        if ($replace.length < $some.min) console.log("string too short");
+        else console.log("string too long");
+      },
+      { replace: ["$replace"], inlineVariables: true }
+    );
+
+    const code = block.build({
+      $replace: insertCode("hello.world"),
+      $some: { min: 2 },
+    });
+
+    expect(code).toContain(
+      'if (hello.world.length < 2) console.log("string too short"); else console.log("string too long");'
+    );
   });
 });
