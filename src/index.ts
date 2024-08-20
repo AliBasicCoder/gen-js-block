@@ -192,10 +192,8 @@ function main(
         this.OCallExpression(node, state);
       }
     },
-    // OMemberExpression: GENERATOR.MemberExpression,
+    OMemberExpression: GENERATOR.MemberExpression,
     MemberExpression(node: any, state: any) {
-      // TODO allow replace vars inside expression not just at first
-      // TODO ex: $s[$t], $s.hello[$t], etc...
       const firstExpr = getFirstExpression(node);
       if (
         firstExpr.type === "Identifier" &&
@@ -221,7 +219,7 @@ function main(
         }
       } else {
         // @ts-ignore
-        GENERATOR[node.type](node, state);
+        this.OMemberExpression(node, state);
       }
     },
     Identifier(node: any, state: any) {

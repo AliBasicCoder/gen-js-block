@@ -304,8 +304,8 @@ describe("main module", () => {
         $s = "hello world";
         $s.length = 6;
         // TODO will make work later...
-        // $s[$t.hello] = 5;
-        // console.log($s?.[$t.hello], $s?.hello);
+        $s[$t.hello] = 5;
+        console.log($s?.[$t.hello], $s?.hello);
         const key = "hello";
         $s[key] = [10, 11, 12];
         $s[key].map((item: number) => item + 1);
@@ -324,9 +324,9 @@ describe("main module", () => {
     expect(code).toContain("hello.world = true;");
     expect(code).toContain("hello.world = false;");
     expect(code).toContain("hello.world.length = 6");
-    // expect(code).toContain('hello.world["hello"] = 5');
-    // expect(code).toContain('hello.world?.["hello"]');
-    // expect(code).toContain("hello.world?.hello");
+    expect(code).toContain('hello.world["hello"] = 5');
+    expect(code).toContain('hello.world?.["hello"]');
+    expect(code).toContain("hello.world?.hello");
     expect(code).toContain("hello.world[key]");
     expect(code).toContain("hello.world[key].map(item => item + 1)");
   });

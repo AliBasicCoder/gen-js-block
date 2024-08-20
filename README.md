@@ -283,12 +283,3 @@ const block = new Block<{}>((definedElseWhere: string) => {
 
    const block = new Block(({ $key }) => /* ... */);
    ```
-1. can't use replace template variables inside member expression
-    ```js
-    const block = new Block(($a, $b) => {
-      // all these won't work...
-      $a[$b];
-      $a.hello[$b];
-      // etc...
-    }, { replace: ["$a", "$b"] })
-    ```
