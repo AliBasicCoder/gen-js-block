@@ -1,5 +1,6 @@
 import acorn, {
   ArrowFunctionExpression,
+  BlockStatement,
   Expression,
   ExpressionStatement,
   FunctionExpression,
@@ -83,27 +84,22 @@ function removeFirstMemberExpression(ast: MemberExpression): MemberExpression {
 // TODO maybe template switch statements?
 function main(
   program: Statement | Expression,
-  templateVariables: string[],
-  inlineVariables: string[] | boolean,
-  replace: string[]
+  templateVariables: Set<string>,
+  inlineVariables: Set<string>,
+  replaceVariables: Set<string>,
+  // TODO find a way to get rid of this - should not inline new vars unless user says
+  inlineNewVars: boolean
 ) {
-  const tempVars = new Set(templateVariables);
-  const toInline = new Set([
-    ...(typeof inlineVariables === "boolean"
-      ? inlineVariables
-        ? templateVariables
-        : []
-      : inlineVariables),
-    ...replace,
-  ]);
-  const toReplace = new Set(replace);
+  // const templateVariables = new Set(templateVariables);
+  // const inlineVariables = new Set([...inlineVariables, ...replaceVariables]);
+  // const replaceVariables = new Set(replaceVariables);
 
   let ForOfStatement: Function;
 
   const customGenerator = Object.assign({}, GENERATOR, {
     OIfStatement: GENERATOR.IfStatement,
     IfStatement(node: any, state: any, shouldBeTempCond?: boolean) {
-      const isTempCond = isTemplateCond(node.test, toReplace);
+      const isTempCond = isTemplateCond(node.test, replaceVariables);
       if (shouldBeTempCond && !isTempCond) {
         throw new Error(
           `else if statement on a template if statements should be template conditions (condition: ${generate(
@@ -163,7 +159,7 @@ function main(
             node.body.type === "ForOfStatement" ||
             node.body.type === "ForInStatement"
           ) ||
-          !isTemplateCond(node.body.right, toReplace)
+          !isTemplateCond(node.body.right, replaceVariables)
         ) {
           throw new Error(
             `expect labeled statement "${node.label.name}" to be a template for-of or for-in`
@@ -181,14 +177,14 @@ function main(
       if (
         node.callee.type === "Identifier" &&
         node.callee.name.startsWith("$") &&
-        tempVars.has(node.callee.name)
+        templateVariables.has(node.callee.name)
       ) {
         state.forceIsTemplate = true;
         state.write(`result += `, true);
         this.OCallExpression(node, state);
         state.write(`;`, true);
         state.forceIsTemplate = false;
-      } else if (isTemplateCond(node, toReplace)) {
+      } else if (isTemplateCond(node, replaceVariables)) {
         state.forceIsTemplate = true;
         state.write(`result += __inline(`, true);
         this.OCallExpression(node, state);
@@ -206,7 +202,7 @@ function main(
         firstExpr.name.startsWith("$") &&
         !state.forceIsTemplate
       ) {
-        if (toReplace.has(firstExpr.name)) {
+        if (replaceVariables.has(firstExpr.name)) {
           state.write(`result += __inline(`, true);
           state.forceIsTemplate = true;
           // @ts-ignore
@@ -215,7 +211,7 @@ function main(
           state.write(`);`, true);
           const rest = removeFirstMemberExpression(node);
           this[rest.type](rest, state);
-        } else if (toInline.has(firstExpr.name)) {
+        } else if (inlineVariables.has(firstExpr.name)) {
           state.write(`result += __inline(`, true);
           state.forceIsTemplate = true;
           // @ts-ignore
@@ -231,7 +227,7 @@ function main(
     Identifier(node: any, state: any) {
       if (
         node.name.startsWith("$") &&
-        toInline.has(node.name) &&
+        inlineVariables.has(node.name) &&
         !state.forceIsTemplate
       ) {
         state.write(`result += __inline(${node.name});`, true);
@@ -242,7 +238,7 @@ function main(
     },
     OForOfStatement: GENERATOR.ForOfStatement,
     ForOfStatement: (ForOfStatement = function (node: any, state: any) {
-      const isTempCond = isTemplateCond(node.right, toReplace);
+      const isTempCond = isTemplateCond(node.right, replaceVariables);
       if (isTempCond) {
         state.write(`for ${node.await ? "await " : ""}(`, true);
         state.forceIsTemplate = true;
@@ -267,20 +263,20 @@ function main(
         state.write(") {", true);
         state.forceIsTemplate = false;
         state.write("{", false);
-        newVariables.forEach((item) => tempVars.add(item));
-        if (inlineVariables && typeof inlineVariables === "boolean")
-          newVariables.forEach((item) => toInline.add(item));
+        newVariables.forEach((item) => templateVariables.add(item));
+        if (inlineNewVars)
+          newVariables.forEach((item) => inlineVariables.add(item));
         for (const name of newVariables) {
-          if (toInline.has(name)) continue;
+          if (inlineVariables.has(name)) continue;
           state.write(`let ${name} = `, false);
           state.write(`result += __inline(${name});`, true);
           state.write(";", false);
         }
         // @ts-ignore
         this[node.body.type](node.body, state);
-        newVariables.forEach((item) => tempVars.delete(item));
-        if (inlineVariables && typeof inlineVariables === "boolean")
-          newVariables.forEach((item) => toInline.delete(item));
+        newVariables.forEach((item) => templateVariables.delete(item));
+        if (inlineNewVars)
+          newVariables.forEach((item) => inlineVariables.delete(item));
 
         state.write("};", false);
         state.write("};", true);
@@ -301,8 +297,8 @@ function main(
   // @ts-ignore
   state.generator.Program(program, state);
   return (
-    templateVariables
-      .filter((item) => !toInline.has(item))
+    Array.from(templateVariables)
+      .filter((item) => !inlineVariables.has(item))
       .map(
         (item) =>
           'result += "const ' +
@@ -325,13 +321,19 @@ const REPLACE = Symbol("js-gen-block");
 export const insertCode = (code: string) => ({ [REPLACE]: code });
 
 export class Block<T = {}> {
-  _builder: (obj: any) => string;
-
+  _builder: ((obj: any) => string) | null = null;
+  templateVariables: Set<string> = new Set();
+  inlineVariables: Set<string> = new Set();
+  replaceVariables: Set<string> = new Set();
+  functionBody: BlockStatement =
+    // @ts-ignore
+    { type: "BlockStatement", body: [] } as BlockStatement;
   constructor(
-    public fn: Function,
-    options?: Partial<BlockOptions>,
-    logCode?: boolean
+    fn: Function | null,
+    options?: Partial<BlockOptions> & { skipBuild?: boolean }
   ) {
+    if (fn == null) return;
+
     const ops = Object.assign({}, DEFAULT_OPTIONS, options);
 
     const parsed = acorn.parse(`(${fn.toString()});`, {
@@ -340,36 +342,85 @@ export class Block<T = {}> {
     const fnExpression = (parsed.body[0] as ExpressionStatement).expression as
       | FunctionExpression
       | ArrowFunctionExpression;
-    const templateVariables: string[] = [];
+
     for (const arg of fnExpression.params) {
       if (arg.type !== "Identifier")
         throw new Error(
           "Function has non-identifier params (like spread params)"
         );
-      if (arg.name.startsWith("$")) templateVariables.push(arg.name);
+      if (arg.name.startsWith("$")) this.templateVariables.add(arg.name);
     }
 
+    this.functionBody =
+      fnExpression.body.type !== "BlockStatement"
+        ? ({
+            type: "BlockStatement",
+            body: [
+              { type: "ExpressionStatement", expression: fnExpression.body },
+            ],
+          } as BlockStatement)
+        : fnExpression.body;
+    this.inlineVariables = new Set([
+      ...(typeof ops.inlineVariables === "boolean"
+        ? ops.inlineVariables
+          ? [...this.templateVariables]
+          : []
+        : ops.inlineVariables),
+      ...ops.replace,
+    ]);
+    this.replaceVariables = new Set(ops.replace);
+
+    if (!ops.skipBuild) this.createBuilder();
+  }
+
+  createBuilder() {
     const code = `function build(__object) {
       const __inline = (value) => typeof value === "object" && !!value && REPLACE in value ? value[REPLACE] : value instanceof Date ? 'new Date("' + value.toString() + '")' : JSON.stringify(value);
       let result = "";
-      const { ${templateVariables.join(", ")} } = __object;
+      const { ${Array.from(this.templateVariables).join(", ")} } = __object;
       ${main(
-        fnExpression.body,
-        templateVariables,
-        ops.inlineVariables,
-        ops.replace
+        this.functionBody,
+        this.templateVariables,
+        this.inlineVariables,
+        this.replaceVariables,
+        true
       )}
       return result;
     }; build`;
-    if (logCode) console.log(code);
+
     this._builder = eval(code);
   }
 
+  join<J>(block: Block<J>, skipRebuild = false): Block<T & J> {
+    const newBlock = new Block(null);
+    newBlock.functionBody.body.push(...this.functionBody.body);
+    newBlock.functionBody.body.push(...block.functionBody.body);
+
+    newBlock.templateVariables = new Set([
+      ...this.templateVariables,
+      ...block.templateVariables,
+    ]);
+    newBlock.inlineVariables = new Set([
+      ...this.inlineVariables,
+      ...block.inlineVariables,
+    ]);
+    newBlock.replaceVariables = new Set([
+      ...this.replaceVariables,
+      ...block.replaceVariables,
+    ]);
+
+    if (!skipRebuild) newBlock.createBuilder();
+    // @ts-ignore
+    return newBlock;
+  }
+
   build(object: T): string {
-    return this._builder(object);
+    if (!this._builder) this.createBuilder();
+    return this._builder!(object);
   }
 
   eval(object: T): any {
-    return eval(this._builder(object));
+    if (!this._builder) this.createBuilder();
+    return eval(this._builder!(object));
   }
 }

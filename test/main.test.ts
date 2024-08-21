@@ -361,4 +361,45 @@ describe("main module", () => {
 
     expect(code).toContain('console.log("hello, world")');
   });
+
+  test("join block", () => {
+    const block1 = new Block<{ $cond1: boolean; $nums: number[] }>(
+      ($cond1: boolean, $nums: number[]) => {
+        console.log("block 1");
+        if ($cond1) console.log("block 1 - $cond1 is true");
+        for (const $num of $nums) {
+          console.log($num);
+        }
+      },
+      { inlineVariables: true }
+    );
+    const block2 = new Block<{ $cond2: boolean; $nums: number[] }>(
+      ($cond2: boolean, $nums: number[]) => {
+        console.log("block 2");
+        if ($cond2) console.log("block 2 - $cond2 is true");
+        for (const $num of $nums) {
+          console.log($num + 1);
+        }
+      },
+      { inlineVariables: true }
+    );
+
+    const newBlock = block1.join(block2);
+
+    const code = newBlock.build({
+      $cond1: true,
+      $cond2: false,
+      $nums: [1, 2, 3],
+    });
+
+    expect(code).toContain('console.log("block 1")');
+    expect(code).toContain('console.log("block 2")');
+    expect(code).toContain('console.log("block 1 - $cond1 is true")');
+    expect(code).toContain("console.log(1)");
+    expect(code).toContain("console.log(2)");
+    expect(code).toContain("console.log(3)");
+    expect(code).toContain("console.log(1 + 1)");
+    expect(code).toContain("console.log(2 + 1)");
+    expect(code).toContain("console.log(3 + 1)");
+  });
 });
