@@ -291,7 +291,7 @@ describe("main module", () => {
 
     expect(code.includes('console.log("hi")')).toBeFalsy();
     expect(code).toContain(`object.name = "hello"`);
-    expect(code).toContain('`this message is "${"hello world"}"`');
+    expect(code).toContain('"this message is \\"" + "hello world" + "\\""');
   });
 
   test("replace", () => {
@@ -401,5 +401,25 @@ describe("main module", () => {
     expect(code).toContain("console.log(1 + 1)");
     expect(code).toContain("console.log(2 + 1)");
     expect(code).toContain("console.log(3 + 1)");
+  });
+
+  test("replace template with normal strings", () => {
+    function tag(...args: any[]) {}
+
+    const block = new Block<{ $name: string; $age: number }>(
+      ($name: string, $age: number) => {
+        console.log(`my name is ${$name} and i'm ${$age} years old.`);
+        console.log(tag`my name is ${$name} and i'm ${$age} years old.`);
+      }
+    );
+
+    const code = block.build({ $name: "Dave", $age: 30 });
+
+    expect(code).toContain(
+      'console.log("my name is " + $name + " and i\'m " + $age + " years old.");'
+    );
+    expect(code).toContain(
+      "console.log(tag`my name is ${$name} and i'm ${$age} years old.`);"
+    );
   });
 });

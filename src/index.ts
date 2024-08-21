@@ -10,9 +10,11 @@ import acorn, {
   Node,
   PrivateIdentifier,
   Statement,
+  TaggedTemplateExpression,
+  TemplateLiteral,
 } from "acorn";
 import astring, { GENERATOR, generate } from "astring";
-import { State, formatVariableDeclaration } from "./state";
+import { State, formatExpression, formatVariableDeclaration } from "./state";
 import { traverse, VisitorOption } from "estraverse";
 
 function getIdentifier(ast: Node) {
@@ -286,6 +288,29 @@ function main(
       }
     }),
     ForInStatement: ForOfStatement,
+    OTemplateLiteral: GENERATOR.TemplateLiteral,
+    TemplateLiteral(node: TemplateLiteral, state: any) {
+      const { quasis, expressions } = node;
+      const { length } = expressions;
+      for (let i = 0; i < length; i++) {
+        const expression = expressions[i];
+        const quasi = quasis[i];
+        state.write(i === 0 ? '"' : ' + "');
+        state.write(quasi.value.raw.replace(/"/g, '\\"'), quasi);
+        state.write('" + ');
+        // @ts-ignore;
+        this[expression.type](expression, state);
+      }
+      const quasi = quasis[quasis.length - 1];
+      state.write(' + "');
+      state.write(quasi.value.raw.replace(/"/g, '\\"'), quasi);
+      state.write('"');
+    },
+    TaggedTemplateExpression(node: TaggedTemplateExpression, state: any) {
+      formatExpression(state, node.tag, node);
+      // @ts-ignore
+      this.OTemplateLiteral(node.quasi, state);
+    },
   });
 
   const state = new State({
